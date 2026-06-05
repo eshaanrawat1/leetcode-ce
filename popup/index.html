@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LeetCode Clipper</title>
+    <link rel="stylesheet" href="index.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="header">
+        <div class="header-top">
+          <div class="source">
+            <span class="dot"></span>
+            <span class="domain">leetcode.com</span>
+          </div>
+          <span id="diag" class="diag">loading</span>
+        </div>
+        <div class="header-inputs">
+          <label class="vault-wrap">
+            <span>Vault</span>
+            <input id="vault" type="text" placeholder="MyVault" />
+          </label>
+          <label class="vault-wrap">
+            <span>Subfolder</span>
+            <input id="subfolder" type="text" placeholder="leetcode/problems" />
+          </label>
+        </div>
+        <div class="actions header-actions">
+          <button id="copyBtn" class="btn ghost">Copy Markdown</button>
+          <button id="sendBtn" class="btn primary" disabled>Send to Obsidian</button>
+        </div>
+      </header>
+
+      <section class="grid">
+        <aside class="card fields">
+          <h2>Extracted Fields</h2>
+          <div id="chips" class="chips"></div>
+          <div id="status" class="status"></div>
+        </aside>
+
+        <section class="card preview">
+          <h2>Final Note Preview</h2>
+          <pre id="preview"></pre>
+        </section>
+      </section>
+
+      <footer class="footer">
+      </footer>
+    </main>
+    <script type="module" src="index.js"></script>
+  </body>
+</html>
