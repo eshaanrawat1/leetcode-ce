@@ -17,6 +17,8 @@ A chrome extension that scrapes problems from LeetCode and CSES and sends them t
 2. Click the refresh arrow on the Chrome Extension card
 3. Hard-refresh Leetcode or CSES (`Cmd+Shift+R` / `Ctrl+Shift+R`)
 
+
+
 ## Features
 
 - **Scrape problem data**: Title, difficulty, topics, description, and code
@@ -25,6 +27,8 @@ A chrome extension that scrapes problems from LeetCode and CSES and sends them t
 - **Obsidian integration**: Creates notes with YAML frontmatter and formatted markdown
 - **Per-source settings**: Separate vault/subfolder for each site
 
+
+
 ## Usage
 
 1. Open a problem page on LeetCode or CSES
@@ -32,14 +36,27 @@ A chrome extension that scrapes problems from LeetCode and CSES and sends them t
 3. Configure your Obsidian vault and subfolder (optional)
 4. Click "Send to Obsidian" to create the note
 
-Leetcode Popup
-![alt text](<images/leetcode-popup.png>)
-
-CSES Popup
-![alt text](<images/cses-popup.png>)
+```yaml
+---
+date: YYYY-MM-DD
+difficulty: Easy/Medium/Hard
+num: 123
+related_topics:
+  - topic1
+return:
+---
+# Problem: 123. Title
+## Description
+[converted markdown]
+## Approach / Thoughts
+## Solution
+```python
+[code]
+```
 
 ## Architecture
-![alt text](<images/arch.png>)
+
+alt text
 
 ## Adding New Sites
 
