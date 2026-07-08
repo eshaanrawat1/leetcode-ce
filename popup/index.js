@@ -1,15 +1,5 @@
-const SOURCES = {
-  leetcode: {
-    label: "LeetCode",
-    domain: "leetcode.com",
-    placeholder: "leetcode/problems"
-  },
-  cses: {
-    label: "CSES",
-    domain: "cses.fi",
-    placeholder: "cses/problems"
-  }
-};
+import { MESSAGE_TYPES } from "../shared/types.js";
+import { SOURCE_BY_ID, detectSourceFromUrl } from "../shared/sources.js";
 
 const state = {
   payload: null,
@@ -38,13 +28,7 @@ function setStatus(message, isError = false) {
 }
 
 function getSourceConfig(source = state.source) {
-  return SOURCES[source] || SOURCES.leetcode;
-}
-
-function detectSourceFromUrl(url = "") {
-  if (url.includes("leetcode.com/problems/")) return "leetcode";
-  if (url.includes("cses.fi/problemset/task/")) return "cses";
-  return "";
+  return SOURCE_BY_ID[source] || SOURCE_BY_ID.leetcode;
 }
 
 function renderSourceTabs() {
@@ -93,6 +77,7 @@ async function getEditorCodeFromMainWorld(tabId) {
     const results = await chrome.scripting.executeScript({
       target: { tabId },
       world: "MAIN",
+      // Must be self-contained — MAIN world cannot import extension modules.
       func: () => {
         const normalizeFenceLanguage = (lang) => {
           const raw = (lang || "").toLowerCase();
@@ -180,7 +165,7 @@ async function persistSourceSubfolder(value) {
 }
 
 async function setSource(nextSource, { rerender = true } = {}) {
-  if (!SOURCES[nextSource]) return;
+  if (!SOURCE_BY_ID[nextSource]) return;
   state.source = nextSource;
   await chrome.storage.local.set({ problemSource: nextSource });
 
@@ -205,7 +190,7 @@ async function scrapeAndRender() {
     return;
   }
 
-  const scrape = await callTab(tab.id, { type: "SCRAPE_PROBLEM_REQUEST" });
+  const scrape = await callTab(tab.id, { type: MESSAGE_TYPES.SCRAPE_PROBLEM_REQUEST });
   if (!scrape?.ok) {
     if ((scrape?.error || "").includes("Receiving end does not exist")) {
       const config = getSourceConfig(state.source);
@@ -227,7 +212,7 @@ async function scrapeAndRender() {
   renderChips(state.payload);
   el.diag.textContent = `${scrape.mode || "partial"}${codeFromMainWorld.source ? ` • ${codeFromMainWorld.source}` : ""}`;
 
-  const rendered = await callRuntime({ type: "RENDER_TEMPLATE_REQUEST", payload: state.payload });
+  const rendered = await callRuntime({ type: MESSAGE_TYPES.RENDER_TEMPLATE_REQUEST, payload: state.payload });
   if (!rendered?.ok) {
     setStatus("Failed to render template.", true);
     return;
@@ -268,7 +253,7 @@ el.sendBtn.addEventListener("click", async () => {
   const fileName = state.payload.title || "Problem";
 
   const built = await callRuntime({
-    type: "BUILD_OBSIDIAN_URI_REQUEST",
+    type: MESSAGE_TYPES.BUILD_OBSIDIAN_URI_REQUEST,
     vault,
     subfolder,
     fileName,

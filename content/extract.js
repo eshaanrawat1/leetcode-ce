@@ -1,13 +1,23 @@
+const MESSAGE_TYPES = {
+  SCRAPE_PROBLEM_REQUEST: "SCRAPE_PROBLEM_REQUEST",
+  SCRAPE_PROBLEM_RESULT: "SCRAPE_PROBLEM_RESULT",
+  RENDER_TEMPLATE_REQUEST: "RENDER_TEMPLATE_REQUEST",
+  RENDER_TEMPLATE_RESULT: "RENDER_TEMPLATE_RESULT",
+  BUILD_OBSIDIAN_URI_REQUEST: "BUILD_OBSIDIAN_URI_REQUEST",
+  BUILD_OBSIDIAN_URI_RESULT: "BUILD_OBSIDIAN_URI_RESULT"
+};
+
 const EXTRACTION_MODES = {
   STRUCTURED: "structured",
   DOM_FALLBACK: "dom-fallback",
   PARTIAL: "partial"
 };
 
-const SOURCES = {
-  LEETCODE: "leetcode",
-  CSES: "cses"
-};
+function detectSourceFromLocation() {
+  if (location.hostname.includes("leetcode.com")) return "leetcode";
+  if (location.hostname.includes("cses.fi")) return "cses";
+  return "";
+}
 
 function text(el) {
   return (el?.textContent || "").trim();
@@ -33,9 +43,7 @@ function isLikelyBadTitle(value) {
 }
 
 function getSourceFromLocation() {
-  if (location.hostname.includes("leetcode.com")) return SOURCES.LEETCODE;
-  if (location.hostname.includes("cses.fi")) return SOURCES.CSES;
-  return "";
+  return detectSourceFromLocation();
 }
 
 function getCsesTaskIdFromLocation() {
@@ -76,14 +84,14 @@ function extractFromStructuredData() {
     num: frontendId,
     title,
     difficulty,
-    source: SOURCES.LEETCODE
+    source: "leetcode"
   };
 }
 
 function extractFromDom() {
   const source = getSourceFromLocation();
 
-  if (source === SOURCES.CSES) {
+  if (source === "cses") {
     const descriptionRoot = document.querySelector(".content .md");
     const taskId = getCsesTaskIdFromLocation();
     const title = getCsesTitleFromDom();
@@ -132,7 +140,6 @@ function extractFromDom() {
   }
 
   const solved = Boolean(Array.from(document.querySelectorAll("div,span")).find((el) => text(el) === "Solved"));
-  const { code, language } = extractCodeFromEditor();
 
   const slug = getSlugFromLocation();
   const num = titleMatch?.[1] || "";
@@ -146,70 +153,19 @@ function extractFromDom() {
     topics,
     descriptionHtml,
     solved,
-    code,
-    language,
+    code: "",
+    language: "python",
     source
   };
 }
 
-function extractCodeFromEditor() {
-  // Monaco (current LeetCode UI)
-  const monacoLines = Array.from(document.querySelectorAll(".monaco-editor .view-lines .view-line"));
-  if (monacoLines.length) {
-    const code = monacoLines.map((line) => line.innerText ?? "").join("\n").replace(/\u00a0/g, " ");
-    const language = detectLanguageFromUi();
-    return { code: code.trimEnd(), language };
-  }
-
-  // Older CodeMirror fallback
-  const codeMirrorLines = Array.from(document.querySelectorAll(".CodeMirror-code pre"));
-  if (codeMirrorLines.length) {
-    const code = codeMirrorLines.map((line) => line.innerText ?? "").join("\n");
-    const language = detectLanguageFromUi();
-    return { code: code.trimEnd(), language };
-  }
-
-  return { code: "", language: detectLanguageFromUi() };
-}
-
-function detectLanguageFromUi() {
-  const candidates = [
-    '[data-cy="lang-select"]',
-    '[id*="lang"] button',
-    'button[aria-haspopup="listbox"]',
-    ".ant-select-selection-item"
-  ];
-
-  for (const selector of candidates) {
-    const el = document.querySelector(selector);
-    const t = text(el);
-    if (t && t.length <= 24) return normalizeFenceLanguage(t);
-  }
-  return "python";
-}
-
-function normalizeFenceLanguage(lang) {
-  const raw = (lang || "").toLowerCase();
-  if (raw.includes("python")) return "python";
-  if (raw.includes("c++")) return "cpp";
-  if (raw === "c") return "c";
-  if (raw.includes("java")) return "java";
-  if (raw.includes("javascript")) return "javascript";
-  if (raw.includes("typescript")) return "typescript";
-  if (raw.includes("go")) return "go";
-  if (raw.includes("rust")) return "rust";
-  if (raw.includes("kotlin")) return "kotlin";
-  if (raw.includes("swift")) return "swift";
-  return raw || "python";
-}
-
-function normalizeDescriptionHtml(html, source) {
+function normalizeDescriptionHtml(html) {
   const base = (html || "").replace(/<div[^>]*>\s*Advertisement[\s\S]*?<\/div>/gi, "").trim();
   return base;
 }
 
 function cleanPayload(raw) {
-  const cleanedHtml = normalizeDescriptionHtml(raw.descriptionHtml || "", raw.source);
+  const cleanedHtml = normalizeDescriptionHtml(raw.descriptionHtml || "");
 
   return {
     num: raw.num || "",
@@ -263,11 +219,11 @@ function extractProblemPayload() {
 }
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (message?.type === "SCRAPE_PROBLEM_REQUEST") {
+  if (message?.type === MESSAGE_TYPES.SCRAPE_PROBLEM_REQUEST) {
     try {
-      sendResponse({ ok: true, type: "SCRAPE_PROBLEM_RESULT", ...extractProblemPayload() });
+      sendResponse({ ok: true, type: MESSAGE_TYPES.SCRAPE_PROBLEM_RESULT, ...extractProblemPayload() });
     } catch (error) {
-      sendResponse({ ok: false, type: "SCRAPE_PROBLEM_RESULT", error: String(error) });
+      sendResponse({ ok: false, type: MESSAGE_TYPES.SCRAPE_PROBLEM_RESULT, error: String(error) });
     }
     return true;
   }
