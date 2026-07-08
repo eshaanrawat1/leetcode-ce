@@ -4,6 +4,11 @@ const EXTRACTION_MODES = {
   PARTIAL: "partial"
 };
 
+const SOURCES = {
+  LEETCODE: "leetcode",
+  CSES: "cses"
+};
+
 function text(el) {
   return (el?.textContent || "").trim();
 }
@@ -27,6 +32,35 @@ function isLikelyBadTitle(value) {
   return /^\d+$/.test(t);
 }
 
+function getSourceFromLocation() {
+  if (location.hostname.includes("leetcode.com")) return SOURCES.LEETCODE;
+  if (location.hostname.includes("cses.fi")) return SOURCES.CSES;
+  return "";
+}
+
+function getCsesTaskIdFromLocation() {
+  const m = location.pathname.match(/^\/problemset\/task\/(\d+)\/?/);
+  return m ? m[1] : "";
+}
+
+function getCsesTitleFromDom() {
+  return (
+    text(document.querySelector(".title-block h1")) ||
+    text(document.querySelector(".content h1")) ||
+    text(document.querySelector("h1"))
+  );
+}
+
+function getCsesTaskLimitsHtml() {
+  const items = Array.from(document.querySelectorAll(".task-constraints li"))
+    .map((li) => `<li>${li.innerHTML}</li>`)
+    .join("");
+
+  if (!items) return "";
+
+  return `<h2>Task Limits</h2><ul>${items}</ul>`;
+}
+
 function extractFromStructuredData() {
   const scripts = Array.from(document.querySelectorAll("script"));
   const source = scripts.map((s) => s.textContent || "").find((s) => s.includes("questionTitle") && s.includes("questionFrontendId"));
@@ -41,11 +75,34 @@ function extractFromStructuredData() {
   return {
     num: frontendId,
     title,
-    difficulty
+    difficulty,
+    source: SOURCES.LEETCODE
   };
 }
 
 function extractFromDom() {
+  const source = getSourceFromLocation();
+
+  if (source === SOURCES.CSES) {
+    const descriptionRoot = document.querySelector(".content .md");
+    const taskId = getCsesTaskIdFromLocation();
+    const title = getCsesTitleFromDom();
+    const taskLimitsHtml = getCsesTaskLimitsHtml();
+
+    return {
+      num: taskId,
+      title,
+      slug: taskId ? `task-${taskId}` : "",
+      difficulty: "",
+      topics: [],
+      descriptionHtml: [taskLimitsHtml, descriptionRoot?.innerHTML?.trim() || ""].filter(Boolean).join("\n"),
+      solved: false,
+      code: "",
+      language: "text",
+      source
+    };
+  }
+
   const titleAnchor =
     document.querySelector('.text-title-large a[href^="/problems/"]') ||
     document.querySelector('a.no-underline[href^="/problems/"]') ||
@@ -90,7 +147,8 @@ function extractFromDom() {
     descriptionHtml,
     solved,
     code,
-    language
+    language,
+    source
   };
 }
 
@@ -145,10 +203,13 @@ function normalizeFenceLanguage(lang) {
   return raw || "python";
 }
 
+function normalizeDescriptionHtml(html, source) {
+  const base = (html || "").replace(/<div[^>]*>\s*Advertisement[\s\S]*?<\/div>/gi, "").trim();
+  return base;
+}
+
 function cleanPayload(raw) {
-  const cleanedHtml = (raw.descriptionHtml || "")
-    .replace(/<div[^>]*>\s*Advertisement[\s\S]*?<\/div>/gi, "")
-    .trim();
+  const cleanedHtml = normalizeDescriptionHtml(raw.descriptionHtml || "", raw.source);
 
   return {
     num: raw.num || "",
@@ -160,6 +221,7 @@ function cleanPayload(raw) {
     descriptionMarkdown: "",
     code: raw.code || "",
     language: raw.language || "python",
+    source: raw.source || getSourceFromLocation(),
     url: location.href,
     solved: Boolean(raw.solved),
     scrapedAt: new Date().toISOString()
@@ -193,7 +255,8 @@ function extractProblemPayload() {
       hasStructured: Boolean(structured),
       hasTitle: Boolean(merged.title),
       hasDescription: Boolean(merged.descriptionHtml),
-      topicCount: merged.topics.length
+      topicCount: merged.topics.length,
+      source: merged.source
     },
     payload: merged
   };

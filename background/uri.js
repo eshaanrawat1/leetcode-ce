@@ -6,14 +6,14 @@ function formatDateLocal(date = new Date()) {
 }
 
 function sanitizeFileName(name) {
-  return (name || "LeetCode Problem")
+  return (name || "Problem")
     .replace(/[\\/:*?"<>|]/g, "")
     .replace(/\s+/g, " ")
     .trim();
 }
 
 function sanitizeFilePath(filePath) {
-  return (filePath || "LeetCode Problem")
+  return (filePath || "Problem")
     .split("/")
     .map((segment) => sanitizeFileName(segment))
     .filter(Boolean)
@@ -34,7 +34,7 @@ function decodeBasicEntities(text) {
     .replace(/&#39;/g, "'");
 }
 
-function htmlToMarkdown(html) {
+function htmlToMarkdown(html, source) {
   if (!html) return "";
 
   let out = html;
@@ -55,10 +55,15 @@ function htmlToMarkdown(html) {
     return `[${decodeBasicEntities(stripTags(label)).trim()}](${href})`;
   });
 
-  out = out.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (_m, item) => `${decodeBasicEntities(stripTags(item)).trim()}\n`);
+  out = out.replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, (_m, title) => `\n\n# ${decodeBasicEntities(stripTags(title)).trim()}\n\n`);
+  out = out.replace(/<h2[^>]*>([\s\S]*?)<\/h2>/gi, (_m, title) => `\n\n## ${decodeBasicEntities(stripTags(title)).trim()}\n\n`);
+  out = out.replace(/<h3[^>]*>([\s\S]*?)<\/h3>/gi, (_m, title) => `\n\n### ${decodeBasicEntities(stripTags(title)).trim()}\n\n`);
+  out = out.replace(/<h4[^>]*>([\s\S]*?)<\/h4>/gi, (_m, title) => `\n\n#### ${decodeBasicEntities(stripTags(title)).trim()}\n\n`);
+  out = out.replace(/<h5[^>]*>([\s\S]*?)<\/h5>/gi, (_m, title) => `\n\n##### ${decodeBasicEntities(stripTags(title)).trim()}\n\n`);
+  out = out.replace(/<h6[^>]*>([\s\S]*?)<\/h6>/gi, (_m, title) => `\n\n###### ${decodeBasicEntities(stripTags(title)).trim()}\n\n`);
+
+  out = out.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (_m, item) => `- ${decodeBasicEntities(stripTags(item)).trim()}\n`);
   out = out.replace(/<br\s*\/?>/gi, "\n");
-  out = out.replace(/<\/h[1-6]>/gi, "\n\n");
-  out = out.replace(/<h[1-6][^>]*>/gi, "");
   out = out.replace(/<\/p>/gi, "\n\n");
   out = out.replace(/<p[^>]*>/gi, "");
   out = out.replace(/<\/ul>|<\/ol>/gi, "\n");
@@ -67,11 +72,13 @@ function htmlToMarkdown(html) {
   out = decodeBasicEntities(stripTags(out));
   out = out.replace(/\n{3,}/g, "\n\n").trim();
 
-  // Keep only the core description body; drop examples/constraints sections.
-  out = out
-    .split(/\n\s*(?:\*\*)?\s*Example(?:s)?\s*\d*\s*:?\s*(?:\*\*)?\s*\n/i)[0]
-    .split(/\n\s*(?:\*\*)?\s*Constraints\s*:?\s*(?:\*\*)?\s*\n/i)[0]
-    .trim();
+  if ((source || "").toLowerCase() !== "cses") {
+    // Keep only the core description body; drop examples/constraints sections.
+    out = out
+      .split(/\n\s*(?:#+\s*)?(?:\*\*)?\s*Example(?:s)?\s*\d*\s*:?\s*(?:\*\*)?\s*\n/i)[0]
+      .split(/\n\s*(?:#+\s*)?(?:\*\*)?\s*Constraints\s*:?\s*(?:\*\*)?\s*\n/i)[0]
+      .trim();
+  }
 
   return out;
 }
@@ -91,7 +98,7 @@ function buildTemplate(context) {
 }
 
 export function renderTemplate(payload) {
-  const descriptionMarkdown = payload.descriptionMarkdown || htmlToMarkdown(payload.descriptionHtml || "");
+  const descriptionMarkdown = payload.descriptionMarkdown || htmlToMarkdown(payload.descriptionHtml || "", payload.source || "");
   const context = { ...payload, descriptionMarkdown };
   const markdown = buildTemplate(context);
   return { markdown, context };

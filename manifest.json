@@ -1,23 +1,23 @@
 {
   "manifest_version": 3,
-  "name": "LeetCode to Obsidian Clipper",
+  "name": "Problem to Obsidian Clipper",
   "version": "0.1.0",
-  "description": "Scrape LeetCode problems and send them to Obsidian via URI.",
+  "description": "Scrape LeetCode and CSES problems and send them to Obsidian via URI.",
   "permissions": ["storage", "activeTab", "scripting"],
-  "host_permissions": ["https://leetcode.com/problems/*"],
+  "host_permissions": ["https://leetcode.com/problems/*", "https://cses.fi/problemset/task/*"],
   "background": {
     "service_worker": "background/service-worker.js",
     "type": "module"
   },
   "content_scripts": [
     {
-      "matches": ["https://leetcode.com/problems/*"],
+      "matches": ["https://leetcode.com/problems/*", "https://cses.fi/problemset/task/*"],
       "js": ["content/extract.js"],
       "run_at": "document_idle"
     }
   ],
   "action": {
-    "default_title": "LeetCode Clipper",
+    "default_title": "Problem Clipper",
     "default_popup": "popup/index.html",
     "default_icon": {
       "16": "assets/icons/icon16.png",
