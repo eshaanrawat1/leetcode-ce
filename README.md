@@ -34,6 +34,8 @@ A chrome extension that scrapes problems from LeetCode and CSES and sends them t
 
 Leetcode Popup
 ![alt text](<images/leetcode-popup.png>)
+
+CSES Popup
 ![alt text](<images/cses-popup.png>)
 
 ## Architecture
