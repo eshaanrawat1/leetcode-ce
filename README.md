@@ -36,6 +36,7 @@ A chrome extension that scrapes problems from LeetCode and CSES and sends them t
 3. Configure your Obsidian vault and subfolder (optional)
 4. Click "Send to Obsidian" to create the note
 
+Generated template includes:
 ```yaml
 ---
 date: YYYY-MM-DD
@@ -56,7 +57,7 @@ return:
 
 ## Architecture
 
-alt text
+![alt text](images/arch.png)
 
 ## Adding New Sites
 
