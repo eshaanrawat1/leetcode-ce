@@ -41,6 +41,30 @@ function detectSourceFromLocation() {
 const EXTRACTORS = {
   leetcode: {
     extractFromStructuredData() {
+      const slug = getSlugFromLocation();
+
+      // Preferred: parse Next.js page data. Only trust it when it matches the current slug,
+      // since client-side navigation (Prev/Next question) leaves __NEXT_DATA__ stale.
+      const nextData = document.getElementById("__NEXT_DATA__")?.textContent;
+      if (nextData) {
+        try {
+          const queries = JSON.parse(nextData)?.props?.pageProps?.dehydratedState?.queries || [];
+          const question = queries.map((q) => q?.state?.data?.question).find((q) => q && q.titleSlug === slug);
+          if (question) {
+            return {
+              num: question.questionFrontendId || "",
+              title: question.title || question.questionTitle || "",
+              difficulty: question.difficulty || "",
+              topics: (question.topicTags || []).map((t) => t?.name).filter(Boolean),
+              descriptionHtml: question.content || "",
+              source: "leetcode"
+            };
+          }
+        } catch (_err) {}
+        return null;
+      }
+
+      // Legacy: regex over inline scripts.
       const scripts = Array.from(document.querySelectorAll("script"));
       const source = scripts.map((s) => s.textContent || "").find((s) => s.includes("questionTitle") && s.includes("questionFrontendId"));
       if (!source) return null;
@@ -61,6 +85,7 @@ const EXTRACTORS = {
 
     extractFromDom() {
       const titleAnchor =
+        document.querySelector('[data-e2e-locator="question-title"] a[href^="/problems/"]') ||
         document.querySelector('.text-title-large a[href^="/problems/"]') ||
         document.querySelector('a.no-underline[href^="/problems/"]') ||
         document.querySelector('a[href^="/problems/"]');
@@ -71,8 +96,17 @@ const EXTRACTORS = {
         text(Array.from(document.querySelectorAll("div,span")).find((el) => /^(Easy|Medium|Hard)$/.test(text(el)))) ||
         "";
 
-      const descriptionRoot = document.querySelector(".HTMLContent_html__0OZLp");
-      const descriptionHtml = descriptionRoot?.innerHTML?.trim() || "";
+      const descriptionRoot =
+        document.querySelector('[data-track-load="description_content"]') ||
+        document.querySelector("[data-qd-rendered-description]") ||
+        document.querySelector('[class*="HTMLContent_html"]');
+      let descriptionHtml = "";
+      if (descriptionRoot) {
+        const clone = descriptionRoot.cloneNode(true);
+        // Drop injected UI (e.g. the "Original / Python3" example language toggle).
+        clone.querySelectorAll("[data-example-lang-controls], button").forEach((n) => n.remove());
+        descriptionHtml = clone.innerHTML.trim();
+      }
 
       const topicSectionHeader = Array.from(document.querySelectorAll("div")).find((el) => text(el) === "Topics");
       let topics = [];
@@ -212,9 +246,9 @@ function extractProblemPayload() {
     num: dom.num || structured?.num || "",
     title: !extractor.isLikelyBadTitle?.(dom.title) ? dom.title : (structured?.title || slugToTitle(dom.slug)),
     slug: dom.slug,
-    difficulty: dom.difficulty || structured?.difficulty || "",
-    topics: dom.topics || [],
-    descriptionHtml: dom.descriptionHtml || "",
+    difficulty: structured?.difficulty || dom.difficulty || "",
+    topics: dom.topics?.length ? dom.topics : (structured?.topics || []),
+    descriptionHtml: dom.descriptionHtml || structured?.descriptionHtml || "",
     solved: dom.solved
   }, source);
 

@@ -84,9 +84,9 @@ async function getEditorCodeFromMainWorld(tabId) {
           if (raw.includes("python")) return "python";
           if (raw.includes("c++")) return "cpp";
           if (raw === "c") return "c";
-          if (raw.includes("java")) return "java";
           if (raw.includes("javascript")) return "javascript";
           if (raw.includes("typescript")) return "typescript";
+          if (raw.includes("java")) return "java";
           if (raw.includes("go")) return "go";
           if (raw.includes("rust")) return "rust";
           if (raw.includes("kotlin")) return "kotlin";
@@ -95,7 +95,10 @@ async function getEditorCodeFromMainWorld(tabId) {
         };
 
         const detectLanguage = () => {
+          const langAttr = document.querySelector("[data-e2e-lang]")?.getAttribute("data-e2e-lang");
+          if (langAttr) return normalizeFenceLanguage(langAttr);
           const selectors = [
+            '[data-e2e-locator="lang-selector-button"]',
             '[data-cy="lang-select"]',
             '[id*="lang"] button',
             'button[aria-haspopup="listbox"]',
